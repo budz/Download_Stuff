@@ -4,6 +4,13 @@
 
 import os
 import yt_dlp
+import time
+
+def print_progress(status):
+    """
+    Prints the progress status on the same line.
+    """
+    print(f"\rDownload progress: {status}", end='', flush=True)
 
 def download_mixcloud(url, download_dir):
     """
@@ -21,30 +28,38 @@ def download_mixcloud(url, download_dir):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'ffmpeg_location': 'ffmpeg'  # Ensure yt-dlp knows where ffmpeg is
+        'ffmpeg_location': 'C:\\ffmpeg\\bin',  # Ensure yt-dlp knows where ffmpeg is
+        'progress_hooks': [lambda d: print_progress(d['status'])]  # Log progress
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        print(f"\nSuccessfully downloaded and processed {url}")
+    except yt_dlp.utils.DownloadError as e:
+        print(f"\nError downloading {url}: {e}")
+    except Exception as e:
+        print(f"\nAn unexpected error occurred: {e}")
 
 def download_from_file(filename, download_dir):
     """
-    Reads Mixcloud URLs from a file and downloads each one.
+    Reads Mixcloud URLs from a file and downloads each one sequentially.
 
     Args:
         filename (str): The name of the file containing the list of URLs.
         download_dir (str): The directory where the MP3 files will be saved.
     """
     with open(filename, 'r') as file:
-        urls = file.readlines()
+        urls = [url.strip() for url in file if url.strip()]
+
     for url in urls:
-        url = url.strip()
-        if url:
-            print(f"Downloading {url}")
-            download_mixcloud(url, download_dir)
-            print(f"Finished downloading {url}")
+        print(f"\nStarting download for {url}")
+        download_mixcloud(url, download_dir)
+        print(f"\nFinished processing {url}")
+        time.sleep(30)  # Sleep for 30 seconds before starting the next download
 
 if __name__ == "__main__":
     input_filename = 'mixcloud-to-dl.txt'
     download_directory = 'downloads'  # Specify the directory where you want to save the files
     os.makedirs(download_directory, exist_ok=True)  # Create the directory if it doesn't exist
     download_from_file(input_filename, download_directory)
+
